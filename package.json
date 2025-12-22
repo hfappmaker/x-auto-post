@@ -1,0 +1,32 @@
+{
+  "name": "x-auto-post",
+  "version": "1.0.0",
+  "description": "Automatic posting tool using X API and Gemini AI with Vercel Cron",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "vitest",
+    "lint": "next lint",
+    "format": "prettier --write \"**/*.{ts,tsx}\""
+  },
+  "keywords": ["twitter", "x", "gemini", "ai", "automation", "vercel", "cron"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "twitter-api-v2": "^1.17.2",
+    "next": "^14.2.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.2.0",
+    "prettier": "^3.4.2"
+  }
+}

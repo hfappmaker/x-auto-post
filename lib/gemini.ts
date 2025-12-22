@@ -1,0 +1,122 @@
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { config } from './config';
+
+export class GeminiService {
+  private genAI: GoogleGenerativeAI;
+  private model;
+
+  constructor() {
+    this.genAI = new GoogleGenerativeAI(config.gemini.apiKey);
+    this.model = this.genAI.getGenerativeModel({ model: 'gemini-pro' });
+  }
+
+  /**
+   * Geminiを使用してポスト用のコンテンツを生成
+   * @param prompt コンテンツ生成のためのプロンプト
+   * @returns 生成されたテキスト
+   */
+  async generateContent(prompt: string): Promise<string> {
+    try {
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+
+      // X (Twitter)の文字数制限を考慮 (280文字)
+      if (text.length > 280) {
+        return text.substring(0, 277) + '...';
+      }
+
+      return text;
+    } catch (error) {
+      console.error('Error generating content with Gemini:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * トピックに基づいてツイートを生成
+   * @param topic ツイートのトピック
+   * @returns 生成されたツイート
+   */
+  async generateTweet(topic?: string): Promise<string> {
+    const defaultPrompt = `面白くて魅力的なツイートを1つ生成してください。280文字以内で、絵文字を適度に使用してください。${topic ? `トピック: ${topic}` : ''}`;
+    return this.generateContent(defaultPrompt);
+  }
+
+  /**
+   * フリーランスエンジニア向けのツイートを生成
+   * システムプロンプトと詳細な指示を使用して、質の高いコンテンツを生成
+   * @returns 生成されたツイート（140文字以内）
+   */
+  async generateFreelanceEngineerTweet(): Promise<string> {
+    // 現在時刻を取得（日本時間）
+    const now = new Date();
+    const jstOffset = 9 * 60; // JST is UTC+9
+    const jstTime = new Date(now.getTime() + (jstOffset - now.getTimezoneOffset()) * 60000);
+    const formattedDate = jstTime.toLocaleString('ja-JP', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Asia/Tokyo'
+    });
+
+    // システムプロンプト + 詳細な指示を含む包括的なプロンプト
+    const systemPrompt = `あなたはフリーランスエンジニアコミュニティで人気のSNS投稿者です。
+プログラミング技術のトレンドに詳しく、フリーランスエンジニアの悩みや喜び、成長への願いを深く理解しています。
+投稿は常にポジティブで、読者のモチベーションを高めます。
+
+【あなたの役割】
+- フリーランスエンジニアの心に刺さる、共感と前向きな気持ちを引き出す投稿を作成すること
+- 最新の技術トレンドやエンジニア業界の話題を取り入れること
+- カジュアルで親しみやすく、かつプロフェッショナルなトーンを保つこと`;
+
+    const userPrompt = `現在時刻は【${formattedDate} (JST)】です。
+
+この時間帯にふさわしい、フリーランスエンジニアが思わず「いいね」や「リツイート」をしたくなるツイートを1つ生成してください。
+
+【必須条件】
+1. 最新のプログラミング技術、フレームワーク、またはエンジニア業界のトレンドに言及すること
+2. フリーランスエンジニアの心に響く内容にすること（例：自由な働き方、スキルアップ、市場価値、ワークライフバランスなど）
+3. 前向きでモチベーションが上がる内容にすること
+4. 適切なハッシュタグを2-3個含めること（例：#エンジニア #フリーランス #プログラミング #副業 #リモートワーク など）
+5. 絵文字を1-2個使用すること
+6. **厳密に140文字以内に収めること**（これは絶対条件です）
+
+【注意事項】
+- 宣伝や売り込みっぽい内容は避ける
+- 自然で読みやすい日本語を使う
+- ハッシュタグは文末にまとめて配置
+
+それでは、魅力的なツイートを生成してください。`;
+
+    const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
+
+    try {
+      const result = await this.model.generateContent(fullPrompt);
+      const response = await result.response;
+      let text = response.text().trim();
+
+      // 140文字を超える場合は切り詰める
+      if (text.length > 140) {
+        console.warn(`Generated tweet was ${text.length} chars, truncating to 140`);
+        // ハッシュタグを保持しながら切り詰める
+        const hashtagMatch = text.match(/(#[^\s#]+(\s+#[^\s#]+)*)\s*$/);
+        if (hashtagMatch) {
+          const hashtags = hashtagMatch[0];
+          const mainText = text.substring(0, text.length - hashtags.length).trim();
+          const availableLength = 140 - hashtags.length - 1; // -1 for space
+          text = mainText.substring(0, availableLength) + ' ' + hashtags.trim();
+        } else {
+          text = text.substring(0, 140);
+        }
+      }
+
+      return text;
+    } catch (error) {
+      console.error('Error generating freelance engineer tweet:', error);
+      throw error;
+    }
+  }
+}
