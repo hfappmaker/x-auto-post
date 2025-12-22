@@ -53,9 +53,7 @@ export class GeminiService {
   async generateFreelanceEngineerTweet(): Promise<string> {
     // 現在時刻を取得（日本時間）
     const now = new Date();
-    const jstOffset = 9 * 60; // JST is UTC+9
-    const jstTime = new Date(now.getTime() + (jstOffset - now.getTimezoneOffset()) * 60000);
-    const formattedDate = jstTime.toLocaleString('ja-JP', {
+    const formattedDate = now.toLocaleString('ja-JP', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
