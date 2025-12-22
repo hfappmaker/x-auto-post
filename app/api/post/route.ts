@@ -1,7 +1,7 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { validateConfig, config } from '../../lib/config';
-import { GeminiService } from '../../lib/gemini';
-import { TwitterService } from '../../lib/twitter';
+import { NextRequest, NextResponse } from 'next/server';
+import { validateConfig, config } from '../../../lib/config';
+import { GeminiService } from '../../../lib/gemini';
+import { TwitterService } from '../../../lib/twitter';
 
 type ResponseData = {
   success: boolean;
@@ -10,29 +10,18 @@ type ResponseData = {
   error?: string;
 };
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<ResponseData>
-) {
-  // POSTメソッドのみ許可
-  if (req.method !== 'POST') {
-    return res.status(405).json({
-      success: false,
-      error: 'Method not allowed',
-    });
-  }
-
+export async function GET(request: NextRequest): Promise<NextResponse<ResponseData>> {
   // Cron認証チェック（本番環境のみ）
   if (process.env.NODE_ENV === 'production') {
-    const authHeader = req.headers.authorization;
+    const authHeader = request.headers.get('authorization');
     const expectedAuth = `Bearer ${config.cronSecret}`;
 
     if (!authHeader || authHeader !== expectedAuth) {
       console.error('❌ Unauthorized: Invalid or missing CRON_SECRET');
-      return res.status(401).json({
-        success: false,
-        error: 'Unauthorized',
-      });
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
     }
   }
 
@@ -64,7 +53,7 @@ export default async function handler(
 
     console.log('✨ Post completed successfully!');
 
-    return res.status(200).json({
+    return NextResponse.json({
       success: true,
       message: 'Tweet posted successfully',
       tweetId: result.id,
@@ -72,9 +61,9 @@ export default async function handler(
   } catch (error) {
     console.error('❌ Error during post:', error);
 
-    return res.status(500).json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
   }
 }
