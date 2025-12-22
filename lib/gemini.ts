@@ -7,7 +7,9 @@ export class GeminiService {
 
   constructor() {
     this.genAI = new GoogleGenerativeAI(config.gemini.apiKey);
-    this.model = this.genAI.getGenerativeModel({ model: 'gemini-pro' });
+    // Gemini 3 Pro Preview - 最新の高性能推論モデル（2024年11月リリース）
+    // 100万トークンコンテキスト、知識カットオフ2025年1月
+    this.model = this.genAI.getGenerativeModel({ model: 'gemini-3-pro-preview' });
   }
 
   /**
@@ -91,11 +93,11 @@ export class GeminiService {
 
 それでは、魅力的なツイートを生成してください。`;
 
-    const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
-
     try {
-      const result = await this.model.generateContent(fullPrompt);
-      const response = await result.response;
+      const result = await this.model.generateContent({systemInstruction: systemPrompt, contents: [
+        {role: "user", parts: [{text: userPrompt}]}
+      ]});
+      const response = result.response;
       let text = response.text().trim();
 
       // 140文字を超える場合は切り詰める
