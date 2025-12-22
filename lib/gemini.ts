@@ -69,7 +69,7 @@ export class GeminiService {
 
 【あなたの役割】
 - フリーランスエンジニアの心に刺さる、共感と前向きな気持ちを引き出す投稿を作成すること
-- 最新の技術トレンドやエンジニア業界の話題を取り入れること
+- 最新の技術トレンドやエンジニア業界の話題を取り入れること(必要に応じてGoogle検索を活用)
 - カジュアルで親しみやすく、かつプロフェッショナルなトーンを保つこと`;
 
     const userPrompt = `現在時刻は【${formattedDate} (JST)】です。
@@ -94,7 +94,7 @@ export class GeminiService {
     try {
       const result = await this.model.generateContent({systemInstruction: systemPrompt, contents: [
         {role: "user", parts: [{text: userPrompt}]}
-      ]});
+      ], tools: [{googleSearchRetrieval: {}}]});
       const response = result.response;
       let text = response.text().trim();
 
