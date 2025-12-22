@@ -1,5 +1,5 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import { config } from './config';
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { config } from "./config";
 
 export class GeminiService {
   private genAI: GoogleGenerativeAI;
@@ -9,7 +9,9 @@ export class GeminiService {
     this.genAI = new GoogleGenerativeAI(config.gemini.apiKey);
     // Gemini 3 Pro Preview - 最新の高性能推論モデル（2024年11月リリース）
     // 100万トークンコンテキスト、知識カットオフ2025年1月
-    this.model = this.genAI.getGenerativeModel({ model: 'gemini-3-pro-preview' });
+    this.model = this.genAI.getGenerativeModel({
+      model: "gemini-3-pro-preview",
+    });
   }
 
   /**
@@ -25,12 +27,12 @@ export class GeminiService {
 
       // X (Twitter)の文字数制限を考慮 (280文字)
       if (text.length > 280) {
-        return text.substring(0, 277) + '...';
+        return text.substring(0, 277) + "...";
       }
 
       return text;
     } catch (error) {
-      console.error('Error generating content with Gemini:', error);
+      console.error("Error generating content with Gemini:", error);
       throw error;
     }
   }
@@ -41,7 +43,7 @@ export class GeminiService {
    * @returns 生成されたツイート
    */
   async generateTweet(topic?: string): Promise<string> {
-    const defaultPrompt = `面白くて魅力的なツイートを1つ生成してください。280文字以内で、絵文字を適度に使用してください。${topic ? `トピック: ${topic}` : ''}`;
+    const defaultPrompt = `面白くて魅力的なツイートを1つ生成してください。280文字以内で、絵文字を適度に使用してください。${topic ? `トピック: ${topic}` : ""}`;
     return this.generateContent(defaultPrompt);
   }
 
@@ -53,13 +55,13 @@ export class GeminiService {
   async generateFreelanceEngineerTweet(): Promise<string> {
     // 現在時刻を取得（日本時間）
     const now = new Date();
-    const formattedDate = now.toLocaleString('ja-JP', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: 'Asia/Tokyo'
+    const formattedDate = now.toLocaleString("ja-JP", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Asia/Tokyo",
     });
 
     // システムプロンプト + 詳細な指示を含む包括的なプロンプト
@@ -72,9 +74,9 @@ export class GeminiService {
 - 最新の技術トレンドやエンジニア業界の話題を取り入れること(必要に応じてGoogle検索を活用)
 - カジュアルで親しみやすく、かつプロフェッショナルなトーンを保つこと`;
 
-    const userPrompt = `現在時刻は【${formattedDate} (JST)】です。
+    const userPrompt = `現在日時は【${formattedDate} (JST)】です。
 
-この時間帯にふさわしい、フリーランスエンジニアが思わず「いいね」や「リツイート」をしたくなるツイートを1つ生成してください。
+この日時、時刻にふさわしい、フリーランスエンジニアが思わず「いいね」や「リツイート」をしたくなるツイートを1つ生成してください。
 
 【必須条件】
 1. 最新のプログラミング技術、フレームワーク、またはエンジニア業界のトレンドに言及すること
@@ -92,22 +94,27 @@ export class GeminiService {
 それでは、魅力的なツイートを生成してください。`;
 
     try {
-      const result = await this.model.generateContent({systemInstruction: systemPrompt, contents: [
-        {role: "user", parts: [{text: userPrompt}]}
-      ], tools: [{googleSearchRetrieval: {}}]});
+      const result = await this.model.generateContent({
+        systemInstruction: systemPrompt,
+        contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+      });
       const response = result.response;
       let text = response.text().trim();
 
       // 140文字を超える場合は切り詰める
       if (text.length > 140) {
-        console.warn(`Generated tweet was ${text.length} chars, truncating to 140`);
+        console.warn(
+          `Generated tweet was ${text.length} chars, truncating to 140`
+        );
         // ハッシュタグを保持しながら切り詰める
         const hashtagMatch = text.match(/(#[^\s#]+(\s+#[^\s#]+)*)\s*$/);
         if (hashtagMatch) {
           const hashtags = hashtagMatch[0];
-          const mainText = text.substring(0, text.length - hashtags.length).trim();
+          const mainText = text
+            .substring(0, text.length - hashtags.length)
+            .trim();
           const availableLength = 140 - hashtags.length - 1; // -1 for space
-          text = mainText.substring(0, availableLength) + ' ' + hashtags.trim();
+          text = mainText.substring(0, availableLength) + " " + hashtags.trim();
         } else {
           text = text.substring(0, 140);
         }
@@ -115,7 +122,7 @@ export class GeminiService {
 
       return text;
     } catch (error) {
-      console.error('Error generating freelance engineer tweet:', error);
+      console.error("Error generating freelance engineer tweet:", error);
       throw error;
     }
   }
