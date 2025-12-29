@@ -25,11 +25,6 @@ export class GeminiService {
       const response = await result.response;
       const text = response.text();
 
-      // X (Twitter)の文字数制限を考慮 (280文字)
-      if (text.length > 280) {
-        return text.substring(0, 277) + "...";
-      }
-
       return text;
     } catch (error) {
       console.error("Error generating content with Gemini:", error);
