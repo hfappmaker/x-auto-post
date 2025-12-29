@@ -101,25 +101,6 @@ export class GeminiService {
       const response = result.response;
       let text = response.text().trim();
 
-      // 140文字を超える場合は切り詰める
-      if (text.length > 140) {
-        console.warn(
-          `Generated tweet was ${text.length} chars, truncating to 140`
-        );
-        // ハッシュタグを保持しながら切り詰める
-        const hashtagMatch = text.match(/(#[^\s#]+(\s+#[^\s#]+)*)\s*$/);
-        if (hashtagMatch) {
-          const hashtags = hashtagMatch[0];
-          const mainText = text
-            .substring(0, text.length - hashtags.length)
-            .trim();
-          const availableLength = 140 - hashtags.length - 1; // -1 for space
-          text = mainText.substring(0, availableLength) + " " + hashtags.trim();
-        } else {
-          text = text.substring(0, 140);
-        }
-      }
-
       return text;
     } catch (error) {
       console.error("Error generating freelance engineer tweet:", error);
