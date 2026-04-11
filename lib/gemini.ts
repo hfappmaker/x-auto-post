@@ -1,54 +1,19 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import { config } from "./config";
 
 export class GeminiService {
-  private genAI: GoogleGenerativeAI;
-  private model;
+  private client: GoogleGenAI;
+  private readonly modelName = "gemini-2.5-flash";
 
   constructor() {
-    this.genAI = new GoogleGenerativeAI(config.gemini.apiKey);
-    // Gemini 3 Pro Preview - 最新の高性能推論モデル（2024年11月リリース）
-    // 100万トークンコンテキスト、知識カットオフ2025年1月
-    this.model = this.genAI.getGenerativeModel({
-      model: "gemini-3-pro-preview",
-    });
-  }
-
-  /**
-   * Geminiを使用してポスト用のコンテンツを生成
-   * @param prompt コンテンツ生成のためのプロンプト
-   * @returns 生成されたテキスト
-   */
-  async generateContent(prompt: string): Promise<string> {
-    try {
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
-
-      return text;
-    } catch (error) {
-      console.error("Error generating content with Gemini:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * トピックに基づいてツイートを生成
-   * @param topic ツイートのトピック
-   * @returns 生成されたツイート
-   */
-  async generateTweet(topic?: string): Promise<string> {
-    const defaultPrompt = `面白くて魅力的なツイートを1つ生成してください。280文字以内で、絵文字を適度に使用してください。${topic ? `トピック: ${topic}` : ""}`;
-    return this.generateContent(defaultPrompt);
+    this.client = new GoogleGenAI({ apiKey: config.gemini.apiKey });
   }
 
   /**
    * フリーランスエンジニア向けのツイートを生成
-   * システムプロンプトと詳細な指示を使用して、質の高いコンテンツを生成
-   * @returns 生成されたツイート（140文字以内）
+   * Google Search Groundingで現在時点の最新IT事情を反映する
    */
   async generateFreelanceEngineerTweet(): Promise<string> {
-    // 現在時刻を取得（日本時間）
     const now = new Date();
     const formattedDate = now.toLocaleString("ja-JP", {
       year: "numeric",
@@ -59,7 +24,6 @@ export class GeminiService {
       timeZone: "Asia/Tokyo",
     });
 
-    // システムプロンプト + 詳細な指示を含む包括的なプロンプト
     const systemPrompt = `あなたはフリーランスエンジニアコミュニティで人気のSNS投稿者です。
 プログラミング技術のトレンドに詳しく、フリーランスエンジニアの悩みや喜び、成長への願いを深く理解しています。
 投稿は常にポジティブで、読者のモチベーションを高めます。
@@ -71,30 +35,64 @@ export class GeminiService {
 
     const userPrompt = `現在日時は【${formattedDate} (JST)】です。
 
-この日付、時刻にふさわしい、フリーランスエンジニアが思わず「いいね」や「リツイート」をしたくなるツイートを1つ生成してください。
+まずGoogle検索ツールを使って、この日時時点で話題になっている最新のIT・プログラミング関連ニュースを調べてください。対象例:
+- 新しく発表・アップデートされたプログラミング言語、フレームワーク、ライブラリ
+- AI / LLM / 開発ツールの最新動向
+- エンジニア業界・フリーランス市場のニュース
+
+調べた内容の中から最も話題性の高いトピックを1つ選び、それを踏まえてフリーランスエンジニアが思わず「いいね」や「リツイート」をしたくなるツイートを1つ生成してください。
 
 【必須条件】
-1. 最新のプログラミング技術、フレームワーク、またはエンジニア業界のトレンドに言及すること
-2. フリーランスエンジニアの心に響く内容にすること（例：自由な働き方、スキルアップ、市場価値、ワークライフバランスなど）
+1. 上で検索した最新トピックに具体的に言及すること(一般論で終わらせない)
+2. フリーランスエンジニアの心に響く内容にすること(自由な働き方、スキルアップ、市場価値、ワークライフバランスなど)
 3. 前向きでモチベーションが上がる内容にすること
-4. 適切なハッシュタグを2-3個含めること（例：#エンジニア #フリーランス #プログラミング #副業 #リモートワーク など）
+4. 適切なハッシュタグを2-3個含めること(例: #エンジニア #フリーランス #プログラミング #AI #リモートワーク など)
 5. 絵文字を1-2個使用すること
-6. **厳密に140文字以内に収めること**
+6. **厳密に140文字以内に収めること**(ハッシュタグ・絵文字・スペース含む)
 
 【注意事項】
 - 宣伝や売り込みっぽい内容は避ける
 - 自然で読みやすい日本語を使う
 - ハッシュタグは文末にまとめて配置
+- URLや出典は本文に含めない(文字数を圧迫するため)
+- 出力はツイート本文のみ。前置きや説明文は一切書かない
 
 それでは、魅力的なツイートを生成してください。`;
 
     try {
-      const result = await this.model.generateContent({
-        systemInstruction: systemPrompt,
-        contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+      const response = await this.client.models.generateContent({
+        model: this.modelName,
+        contents: userPrompt,
+        config: {
+          systemInstruction: systemPrompt,
+          tools: [{ googleSearch: {} }],
+          temperature: 0.9,
+          maxOutputTokens: 2048,
+          thinkingConfig: { thinkingBudget: 0 },
+        },
       });
-      const response = result.response;
-      let text = response.text().trim();
+
+      const candidate = response.candidates?.[0];
+      console.log(
+        `ℹ️ finishReason=${candidate?.finishReason} usage=${JSON.stringify(response.usageMetadata)}`
+      );
+
+      const text = (response.text ?? "").trim();
+
+      const grounding = candidate?.groundingMetadata;
+      if (grounding?.webSearchQueries?.length) {
+        console.log(
+          `🔎 Grounding queries: ${JSON.stringify(grounding.webSearchQueries)}`
+        );
+      }
+      if (grounding?.groundingChunks?.length) {
+        const sources = grounding.groundingChunks
+          .map((c) => c.web?.uri)
+          .filter(Boolean);
+        if (sources.length) {
+          console.log(`🔗 Grounding sources: ${JSON.stringify(sources)}`);
+        }
+      }
 
       return text;
     } catch (error) {
