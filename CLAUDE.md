@@ -74,7 +74,7 @@ npm run format
 
 ### Data Flow
 
-1. **Vercel Cron** → `/api/post` をGETで定期的に呼び出し（2時間ごと）
+1. **Vercel Cron** → `/api/post` をGETで定期的に呼び出し（1日1回）
 2. **認証チェック**: 本番環境のみ`Authorization: Bearer <CRON_SECRET>`を検証
 3. **設定検証**: 環境変数の存在確認（`validateConfig()`）
 4. **Twitter認証**: APIクレデンシャルを検証（`verifyCredentials()`）
@@ -93,7 +93,7 @@ npm run format
 {
   "crons": [{
     "path": "/api/post",
-    "schedule": "0 */2 * * *"  // 2時間ごとに実行（レートリミット対策）
+    "schedule": "0 0 * * *"  // 1日1回（UTC 00:00 = JST 09:00）に実行
   }]
 }
 ```
